@@ -1,10 +1,10 @@
 import struct
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Tuple, Optional
 
 import socket
 
-from common.command import Command, COMMAND_SIZE
+from common.command import CommandType, MAX_COMMAND_SIZE, CommandParams, unpack_command
 from common.data import REGISTER_RESPONSE
 from common.image import Image
 from common import udp
@@ -13,7 +13,7 @@ from common import udp
 class Connection(ABC):
 
     @abstractmethod
-    def wait_for_command(self) -> Command:
+    def wait_for_command(self) -> Tuple[CommandType, Optional[CommandParams]]:
         pass
 
     @abstractmethod
@@ -39,9 +39,9 @@ class UdpConnection(Connection):
         self._socket = skt
         self._address = address
 
-    def wait_for_command(self) -> Command:
-        data, address = self._socket.recvfrom(COMMAND_SIZE)
-        return Command(data)
+    def wait_for_command(self) -> Tuple[CommandType, Optional[CommandParams]]:
+        data, address = self._socket.recvfrom(MAX_COMMAND_SIZE)
+        return unpack_command(data)
 
     def send_register(self) -> int:
         # send the server a response:

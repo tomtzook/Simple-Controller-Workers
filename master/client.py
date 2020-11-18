@@ -4,7 +4,7 @@ from typing import Optional, Tuple, List
 import socket
 import struct
 
-from common.command import Command
+from common.command import CommandType, CommandParams, pack_command
 from common.data import REGISTER_RESPONSE
 from common.image import Image
 from common import udp
@@ -20,7 +20,7 @@ class Client(ABC):
         return self._id
 
     @abstractmethod
-    def send_command(self, command: Command):
+    def send_command(self, command: CommandType, params: Optional[CommandParams] = None):
         pass
 
     @abstractmethod
@@ -35,7 +35,7 @@ class Connection(ABC):
         pass
 
     @abstractmethod
-    def broadcast(self, command: Command):
+    def broadcast(self, command: CommandType, params: Optional[CommandParams] = None):
         pass
 
     @abstractmethod
@@ -50,8 +50,9 @@ class UdpClient(Client):
         self._socket = socket
         self._address = address
 
-    def send_command(self, command: Command):
-        self._socket.sendto(command.value, self._address)
+    def send_command(self, command: CommandType, params: Optional[CommandParams] = None):
+        command_data = pack_command(command, params)
+        self._socket.sendto(command_data, self._address)
 
     def receive_image(self) -> Optional[Image]:
         return udp.receive_image(self._socket)
@@ -59,7 +60,7 @@ class UdpClient(Client):
 
 class UdpConnection(Connection):
     _BROADCAST_ADDRESS = '<broadcast>'
-    _DISCOVERY_COMMAND = Command.REGISTER
+    _DISCOVERY_COMMAND = CommandType.REGISTER
     _DISCOVERY_RESPONSE = REGISTER_RESPONSE
 
     def __init__(self, skt: socket.socket, clients_port: int):
@@ -69,7 +70,7 @@ class UdpConnection(Connection):
 
     def do_discovery(self) -> List[Client]:
         # Send to all the clients that they should report their existence.
-        self.broadcast(Command.REGISTER)
+        self.broadcast(CommandType.REGISTER)
 
         clients = []
         # Collect responses from clients
@@ -85,8 +86,9 @@ class UdpConnection(Connection):
 
         return clients
 
-    def broadcast(self, command: Command):
-        self._socket.sendto(command.value, (self._BROADCAST_ADDRESS, self._clients_port))
+    def broadcast(self, command: CommandType, params: Optional[CommandParams] = None):
+        command_data = pack_command(command, params)
+        self._socket.sendto(command_data, (self._BROADCAST_ADDRESS, self._clients_port))
 
     def close(self):
         self._socket.close()

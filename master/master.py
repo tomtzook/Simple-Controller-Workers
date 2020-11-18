@@ -1,6 +1,6 @@
 from typing import Optional
 
-from common.command import Command
+from common.command import CommandType
 from common.image import Image
 from master.client import Connection, Client
 from master.storage import Storage
@@ -17,7 +17,7 @@ class Master(object):
         self._clients = self._connection.do_discovery()
 
     def take_picture(self):
-        self._connection.broadcast(Command.TAKE_PICTURE)
+        self._connection.broadcast(CommandType.TAKE_PICTURE)
 
     def collect_pictures(self):
         for client in self._clients:
@@ -35,7 +35,7 @@ class Master(object):
 
     def _collect_one_picture(self, client: Client) -> Optional[Image]:
         # Request the next image from the user.
-        client.send_command(Command.SEND_NEXT_PICTURE)
+        client.send_command(CommandType.SEND_NEXT_PICTURE)
         # Read the data from the client
         image = client.receive_image()
         if image is None:

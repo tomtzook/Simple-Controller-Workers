@@ -2,7 +2,7 @@ from pathlib import Path
 
 import time
 
-from common.command import Command
+from common.command import CommandType, TakePictureParams
 from master.client import UdpConnection
 from master.master import Master
 from master.storage import BasicFileSystemStorage
@@ -27,9 +27,10 @@ def main():
 
         # Run several times (how many times we want to take pictures).
         for i in range(RUN_EXPERIMENT_TIMES):
-            print('Taking picture')
-            # Notify all clients to take a picture
-            connection.broadcast(Command.TAKE_PICTURE)
+            print('Taking picture', i)
+            # Notify all clients to take a picture.
+            # The id we will use to identify the image is from i
+            connection.broadcast(CommandType.TAKE_PICTURE, TakePictureParams(i))
             # Wait until next time to take a picture
             time.sleep(WAIT_BETWEEN_PICS_SEC)
 

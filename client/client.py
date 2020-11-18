@@ -1,7 +1,7 @@
 from client.camera import Camera
 from client.connection import Connection
 from client.storage import Storage
-from common.command import Command
+from common.command import CommandType, TakePictureParams
 from common.image import Image
 
 
@@ -12,18 +12,21 @@ class Client(object):
         self._storage = storage
         self._camera = camera
         self._command_handlers = {
-            Command.REGISTER: self._register_to_server,
-            Command.TAKE_PICTURE: self._take_picture,
-            Command.SEND_NEXT_PICTURE: self._send_next_picture
+            CommandType.REGISTER: self._register_to_server,
+            CommandType.TAKE_PICTURE: self._take_picture,
+            CommandType.SEND_NEXT_PICTURE: self._send_next_picture
         }
 
         self._id = -1
-        self._next_image_id = 0
 
     def handle_next_command(self):
-        command = self._connection.wait_for_command()
+        command, params = self._connection.wait_for_command()
         handler = self._command_handlers[command]
-        handler()
+        if params is None:
+            handler()
+        else:
+            # noinspection PyArgumentList
+            handler(params)
 
     def _register_to_server(self):
         # If the command is to register:
@@ -34,13 +37,13 @@ class Client(object):
         print('New ID:', new_id)
         self._id = new_id
 
-    def _take_picture(self):
+    def _take_picture(self, params: TakePictureParams):
         # If the command is to take a picture:
         print('Take picture request')
 
-        # Increment the picture id so it will represent the new image.
-        self._next_image_id += 1
-        image_id = self._next_image_id
+        # The picture id
+        image_id = params.picture_id
+        print('Picture id', image_id)
 
         # Take picture
         data = self._camera.take_picture()
